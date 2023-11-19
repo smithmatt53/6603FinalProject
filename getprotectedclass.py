@@ -1,4 +1,5 @@
 import csv
+import random
 
 def ReadFile():
     with open('Employee.csv') as file_obj: 
@@ -25,6 +26,14 @@ def ReadFile():
 def WriteFile(name, values):
     with open(name+'.csv', 'w', newline='') as file:
             fields = ['Education',	'JoiningYear',	'City',	'PaymentTier',	'Age',	'Gender',	'EverBenched',	'ExperienceInCurrentDomain',	'LeaveOrNot']
+            writer = csv.DictWriter(file, fieldnames = fields)
+            writer.writeheader() 
+            #for x in newValues:
+            writer.writerows(values)
+
+def WriteTrainingAndTestingFile(name, values):
+    with open(name+'.csv', 'w', newline='') as file:
+            fields = ['Education',	'JoiningYear',	'City',	'PaymentTier',	'Age',	'Gender',	'EverBenched',	'ExperienceInCurrentDomain',	'LeaveOrNot', 'ID']
             writer = csv.DictWriter(file, fieldnames = fields)
             writer.writeheader() 
             #for x in newValues:
@@ -174,14 +183,6 @@ def ReadUpdatedFile():
                     pay3Over40.append(x)
                 elif x['Age'] == '0':
                     pay3Under40.append(x)
-        
-
-        #Male1 = []
-        #Female1 = []
-        #Male2 = []
-        #Female2 = []
-        #Male3 = []
-        #Female3 = []
 
         male1Over40 = []
         male1Under40 = []
@@ -267,13 +268,80 @@ def ReadUpdatedFile():
         female3Under40)
 
 
+#Step 4 Divide Dataset
+def ReadAndSplitDataSet():
+    with open('updatedValues.csv') as file_obj: 
+    # Create reader object by passing the file 
+    # object to DictReader method 
+        article_read = csv.DictReader(file_obj) 
+        allRows = []
+        for x in article_read:
+            allRows.append(x)
+
+        val = len(allRows)
+        val = val/2
+        val = int(val)
+        train = random.sample(allRows, val)
+        numbersOnly = []
+        for x in train:
+            numbersOnly.append(x['ID'])
 
 
+
+        test = []
+        for x in allRows:
+            val = x['ID']
+            if (val not in numbersOnly):
+                test.append(x)
+
+    return(train, test)
+
+#Step 4 Method
+def ReadTrainingTestingData(fileName):
+    with open(fileName + '.csv') as file_obj: 
+    # Create reader object by passing the file 
+    # object to DictReader method 
+        article_read = csv.DictReader(file_obj) 
+        scores = []
+        notTier23 = []
+        for x in article_read:
+            score = 100
+
+            if(x['Education']=='PHD'):
+                score = 110
+                scores.append({'Score': score,'Education': x['Education'], 'JoiningYear': x['JoiningYear'], 'City': x['City'], 'PaymentTier': x['PaymentTier'], 'Age': x['Age'], 'Gender': x['Gender'], 'EverBenched': x['EverBenched'], 'ExperienceInCurrentDomain': x['ExperienceInCurrentDomain'], 'LeaveOrNot': x['LeaveOrNot'], 'ID': x['ID']})
+            
+            elif (int(x['ExperienceInCurrentDomain']) >= 5):
+                score = 110
+                scores.append({'Score': score,'Education': x['Education'], 'JoiningYear': x['JoiningYear'], 'City': x['City'], 'PaymentTier': x['PaymentTier'], 'Age': x['Age'], 'Gender': x['Gender'], 'EverBenched': x['EverBenched'], 'ExperienceInCurrentDomain': x['ExperienceInCurrentDomain'], 'LeaveOrNot': x['LeaveOrNot'], 'ID': x['ID']})
+            else:
+                if(int(x['JoiningYear']) >= 2017):
+                    score = score - 30
+                if(x['LeaveOrNot'] == '1'):
+                    score = score - 45
+            
+                if(x['City'] == 'Bangalore'):
+                    score = score - 10
+                
+                if(x['EverBenched'] == 'Yes'):
+                    score = score - 20
+                scores.append({'Score': score,'Education': x['Education'], 'JoiningYear': x['JoiningYear'], 'City': x['City'], 'PaymentTier': x['PaymentTier'], 'Age': x['Age'], 'Gender': x['Gender'], 'EverBenched': x['EverBenched'], 'ExperienceInCurrentDomain': x['ExperienceInCurrentDomain'], 'LeaveOrNot': x['LeaveOrNot'], 'ID': x['ID']})
+                
+        return scores
+
+def WriteTier3(name, values):
+    with open(name+'.csv', 'w', newline='') as file:
+            fields = ['Score','Education',	'JoiningYear',	'City',	'PaymentTier',	'Age',	'Gender',	'EverBenched',	'ExperienceInCurrentDomain',	'LeaveOrNot', 'ID']
+            writer = csv.DictWriter(file, fieldnames = fields)
+            writer.writeheader() 
+            #for x in newValues:
+            writer.writerows(values)
 #updatedValues = ReadFile()
 #WriteFile('updatedValues',updatedValues)
 
+"""
+# Step 2
 vals = ReadUpdatedFile()
-
 
 print('male 1:', len(vals[0]))
 print('female 1:', len(vals[1]))
@@ -304,5 +372,63 @@ print('pay 3 over 40:' , len(vals[20]))
 print('pay 1 under 40:',  len(vals[21]))
 print('pay 2 under 40:' , len(vals[22]))
 print('pay 3 under 40:' , len(vals[23]))
+"""
 
 
+#step 4 - SPlit data sets
+"""
+train, test = ReadAndSplitDataSet()
+WriteTrainingAndTestingFile('training', train)
+WriteTrainingAndTestingFile('testing', test)
+"""
+
+trainingResults = ReadTrainingTestingData('training')
+#WriteTier3('trainingNot23', not3)
+WriteTier3('training23', trainingResults)
+testingResults = ReadTrainingTestingData('testing')
+#WriteTier3('testingNot23', not3)
+WriteTier3('testing23', testingResults)
+
+
+falsePositive = []
+falseNegative = []
+right = []
+other = []
+for x in trainingResults:
+    if x['PaymentTier'] == '3' and int(x['Score']) >= 45:
+        right.append(x)
+    elif x['PaymentTier'] == '3' and int(x['Score']) < 45:
+        falseNegative.append(x)
+    elif x['PaymentTier'] != '3' and int(x['Score']) < 45:
+        right.append(x)
+    elif x['PaymentTier'] != '3' and int(x['Score']) >= 45:
+        falsePositive.append(x)
+    else:
+        other.append(x)
+
+print(len(right))
+print(len(falsePositive))
+print(len(falseNegative))
+print(len(other))
+
+
+falsePositiveTest = []
+falseNegativeTest = []
+rightTest = []
+otherTest = []
+for x in testingResults:
+    if x['PaymentTier'] == '3' and int(x['Score']) >= 45:
+        rightTest.append(x)
+    elif x['PaymentTier'] == '3' and int(x['Score']) < 45:
+        falseNegativeTest.append(x)
+    elif x['PaymentTier'] != '3' and int(x['Score']) < 45:
+        rightTest.append(x)
+    elif x['PaymentTier'] != '3' and int(x['Score']) >= 45:
+        falsePositiveTest.append(x)
+    else:
+        other.append(x)
+
+print(len(rightTest))
+print(len(falsePositiveTest))
+print(len(falseNegativeTest))
+print(len(otherTest))
